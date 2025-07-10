@@ -2,6 +2,7 @@ console.log("lets write javascript");
 let currentSong = new Audio();
 let currentIndex = 0;
 let allSongs = [];
+let isDemoMode = false; // Global flag to track if we're in demo mode
 
 async function getSongs() {
     // Use relative path for deployment compatibility
@@ -23,19 +24,33 @@ async function getSongs() {
 }
 
 const playMusic = (track, index) => {
-    currentSong.src = "./songs/" + track;
-    currentSong.play();
-    play.src = "image/pause.svg";
-    
-    // Remove folder name and %20, then decode the song name for display
-    const songName = track.split('/').pop(); // Get only the song name (last part after /)
-    const displayName = songName.replaceAll("%20", " ");
-    document.querySelector(".songinfo").innerHTML = displayName;
-    currentIndex = index;
+    if (isDemoMode) {
+        // In demo mode, just update the display without trying to play
+        const songName = track.split('/').pop(); // Get only the song name (last part after /)
+        const displayName = songName.replaceAll("%20", " ");
+        document.querySelector(".songinfo").innerHTML = displayName + " (Demo)";
+        currentIndex = index;
+        
+        // Reset time
+        document.getElementById("currentTime").textContent = "00:00";
+        document.getElementById("remainingTime").textContent = "00:00";
+        
+        console.log("Demo mode: Song display updated, no actual playback");
+    } else {
+        currentSong.src = "./songs/" + track;
+        currentSong.play();
+        play.src = "image/pause.svg";
+        
+        // Remove folder name and %20, then decode the song name for display
+        const songName = track.split('/').pop(); // Get only the song name (last part after /)
+        const displayName = songName.replaceAll("%20", " ");
+        document.querySelector(".songinfo").innerHTML = displayName;
+        currentIndex = index;
 
-    // Reset time
-    document.getElementById("currentTime").textContent = "00:00";
-    document.getElementById("remainingTime").textContent = "00:00";
+        // Reset time
+        document.getElementById("currentTime").textContent = "00:00";
+        document.getElementById("remainingTime").textContent = "00:00";
+    }
 };
 
 async function main() {
@@ -367,11 +382,16 @@ async function getSongsFromFolder(folderName) {
 async function loadSongsFromFolder(folderName) {
     let songs = [];
     
-    try {
-        songs = await getSongsFromFolder(folderName);
-    } catch (error) {
+    if (isDemoMode) {
         console.log(`Using demo songs for ${folderName}`);
         songs = getDemoSongs(folderName);
+    } else {
+        try {
+            songs = await getSongsFromFolder(folderName);
+        } catch (error) {
+            console.log(`Using demo songs for ${folderName}`);
+            songs = getDemoSongs(folderName);
+        }
     }
     
     allSongs = songs;
@@ -414,6 +434,7 @@ async function createFolderCards() {
         // Use demo data if server fetch fails
         if (folders.length === 0) {
             console.log("Server fetch failed, using demo data...");
+            isDemoMode = true; // Set demo mode flag
             const demoFolders = getDemoFolders();
             folders = demoFolders.map(folder => folder.name);
             console.log("Using demo folders:", folders);
