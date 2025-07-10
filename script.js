@@ -365,7 +365,16 @@ async function getSongsFromFolder(folderName) {
 
 // Load songs from specific folder into playlist
 async function loadSongsFromFolder(folderName) {
-    allSongs = await getSongsFromFolder(folderName);
+    let songs = [];
+    
+    try {
+        songs = await getSongsFromFolder(folderName);
+    } catch (error) {
+        console.log(`Using demo songs for ${folderName}`);
+        songs = getDemoSongs(folderName);
+    }
+    
+    allSongs = songs;
 
     let songUL = document.querySelector(".songList ul");
     songUL.innerHTML = ""; // Clear previous content
@@ -402,10 +411,12 @@ async function createFolderCards() {
         let folders = await getFolders();
         console.log("Found folders:", folders);
         
-        // Fallback to known folders if server fetch fails
+        // Use demo data if server fetch fails
         if (folders.length === 0) {
-            folders = ['sm', 'talha anjum', 'lofi', 'krsna', 'karan aujla', 'diljit', 'bollywood', 'arijit'];
-            console.log("Using fallback folders:", folders);
+            console.log("Server fetch failed, using demo data...");
+            const demoFolders = getDemoFolders();
+            folders = demoFolders.map(folder => folder.name);
+            console.log("Using demo folders:", folders);
         }
         
         const cardsContainer = document.querySelector('.cardContainer');
@@ -417,7 +428,15 @@ async function createFolderCards() {
             // Create cards for each folder with custom info
             for (const folder of folders) {
                 console.log("Processing folder:", folder);
-                const folderInfo = await getFolderInfo(folder);
+                let folderInfo;
+                
+                // Try to get folder info from server, fallback to demo data
+                try {
+                    folderInfo = await getFolderInfo(folder);
+                } catch (error) {
+                    console.log(`Using demo info for ${folder}`);
+                    folderInfo = getDemoFolderInfo(folder);
+                }
                 console.log("Folder info:", folderInfo);
                 
                 const card = document.createElement('div');
