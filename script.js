@@ -4,7 +4,8 @@ let currentIndex = 0;
 let allSongs = [];
 
 async function getSongs() {
-    let a = await fetch("http://127.0.0.1:3000/songs/");
+    // Use relative path for deployment compatibility
+    let a = await fetch("./songs/");
     let response = await a.text();
 
     let div = document.createElement("div");
@@ -22,7 +23,7 @@ async function getSongs() {
 }
 
 const playMusic = (track, index) => {
-    currentSong.src = "/songs/" + track;
+    currentSong.src = "./songs/" + track;
     currentSong.play();
     play.src = "image/pause.svg";
     
@@ -258,7 +259,7 @@ async function loadSmSongs() {
 async function getFolders() {
     try {
         console.log("Fetching folders from server...");
-        let a = await fetch("http://127.0.0.1:3000/songs/");
+        let a = await fetch("./songs/");
         console.log("Server response status:", a.status);
         
         if (!a.ok) {
@@ -314,7 +315,7 @@ async function getFolderInfo(folderName) {
     try {
         // Encode the folder name for URL
         const encodedFolderName = encodeURIComponent(folderName);
-        let response = await fetch(`http://127.0.0.1:3000/songs/${encodedFolderName}/info.json`);
+        let response = await fetch(`./songs/${encodedFolderName}/info.json`);
         if (response.ok) {
             return await response.json();
         }
@@ -338,7 +339,7 @@ async function getSongsFromFolder(folderName) {
     try {
         // Encode the folder name for URL
         const encodedFolderName = encodeURIComponent(folderName);
-        let a = await fetch(`http://127.0.0.1:3000/songs/${encodedFolderName}/`);
+        let a = await fetch(`./songs/${encodedFolderName}/`);
         let response = await a.text();
 
         let div = document.createElement("div");
