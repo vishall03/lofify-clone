@@ -94,8 +94,10 @@ Array.from(songUL.getElementsByTagName("li")).forEach((e) => {
     });
 
     // ✅ Seekbar click-to-seek
-    document.querySelector(".seekbar").addEventListener("click", (e) => {
-        let seekbar = e.currentTarget;
+    const seekbar = document.querySelector(".seekbar");
+    let isSeeking = false;
+
+    seekbar.addEventListener("click", (e) => {
         let rect = seekbar.getBoundingClientRect();
         let offsetX = e.clientX - rect.left;
         let width = rect.width;
@@ -106,6 +108,45 @@ Array.from(songUL.getElementsByTagName("li")).forEach((e) => {
             currentSong.currentTime = percentage * duration;
         }
     });
+
+    // Drag-to-seek functionality
+    seekbar.addEventListener("mousedown", (e) => {
+        isSeeking = true;
+        updateSeek(e);
+    });
+    document.addEventListener("mousemove", (e) => {
+        if (isSeeking) {
+            updateSeek(e);
+        }
+    });
+    document.addEventListener("mouseup", () => {
+        isSeeking = false;
+    });
+
+    // Touch support for mobile
+    seekbar.addEventListener("touchstart", (e) => {
+        isSeeking = true;
+        updateSeek(e.touches[0]);
+    });
+    document.addEventListener("touchmove", (e) => {
+        if (isSeeking) {
+            updateSeek(e.touches[0]);
+        }
+    });
+    document.addEventListener("touchend", () => {
+        isSeeking = false;
+    });
+
+    function updateSeek(e) {
+        let rect = seekbar.getBoundingClientRect();
+        let offsetX = e.clientX - rect.left;
+        let width = rect.width;
+        let percentage = Math.max(0, Math.min(1, offsetX / width));
+        let duration = currentSong.duration;
+        if (!isNaN(duration)) {
+            currentSong.currentTime = percentage * duration;
+        }
+    }
 
     // ✅ Next song
     document.getElementById("next").addEventListener("click", () => {
@@ -407,6 +448,18 @@ async function createFolderCards() {
                 // Add click event to load songs from this folder
                 card.addEventListener('click', () => {
                     loadSongsFromFolder(folder);
+
+                    // Show sidebar if hidden (for mobile)
+                    const leftSidebar = document.querySelector('.left');
+                    if (leftSidebar) {
+                        leftSidebar.style.left = '0';
+                    }
+
+                    // Optional: Scroll song list into view
+                    const songList = document.querySelector('.songList');
+                    if (songList) {
+                        songList.scrollIntoView({ behavior: 'smooth' });
+                    }
                 });
                 
                 cardsContainer.appendChild(card);
