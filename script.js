@@ -345,7 +345,6 @@ async function loadSongsFromFolder(folderName) {
                     <img src="image/music.svg" alt="">
                     <div class="info">
                         <div>${displayName}</div>
-                        <div>${folderName}</div>
                     </div>
                     <div class="playnow">
                         <span>Play Now</span>
