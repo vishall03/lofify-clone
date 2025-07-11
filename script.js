@@ -2,7 +2,7 @@ console.log("lets write javascript");
 let currentSong = new Audio();
 let currentIndex = 0;
 let allSongs = [];
-let isDemoMode = false; // Global flag to track if we're in demo mode
+
 
 async function getSongs() {
     // Use relative path for deployment compatibility
@@ -24,33 +24,19 @@ async function getSongs() {
 }
 
 const playMusic = (track, index) => {
-    if (isDemoMode) {
-        // In demo mode, just update the display without trying to play
-        const songName = track.split('/').pop(); // Get only the song name (last part after /)
-        const displayName = songName.replaceAll("%20", " ");
-        document.querySelector(".songinfo").innerHTML = displayName + " (Demo)";
-        currentIndex = index;
-        
-        // Reset time
-        document.getElementById("currentTime").textContent = "00:00";
-        document.getElementById("remainingTime").textContent = "00:00";
-        
-        console.log("Demo mode: Song display updated, no actual playback");
-    } else {
-        currentSong.src = "./songs/" + track;
-        currentSong.play();
-        play.src = "image/pause.svg";
-        
-        // Remove folder name and %20, then decode the song name for display
-        const songName = track.split('/').pop(); // Get only the song name (last part after /)
-        const displayName = songName.replaceAll("%20", " ");
-        document.querySelector(".songinfo").innerHTML = displayName;
-        currentIndex = index;
+    currentSong.src = "./songs/" + track;
+    currentSong.play();
+    play.src = "image/pause.svg";
+    
+    // Remove folder name and %20, then decode the song name for display
+    const songName = track.split('/').pop(); // Get only the song name (last part after /)
+    const displayName = songName.replaceAll("%20", " ");
+    document.querySelector(".songinfo").innerHTML = displayName;
+    currentIndex = index;
 
-        // Reset time
-        document.getElementById("currentTime").textContent = "00:00";
-        document.getElementById("remainingTime").textContent = "00:00";
-    }
+    // Reset time
+    document.getElementById("currentTime").textContent = "00:00";
+    document.getElementById("remainingTime").textContent = "00:00";
 };
 
 async function main() {
@@ -273,50 +259,19 @@ async function loadSmSongs() {
 // Get all folders from songs directory
 async function getFolders() {
     try {
-        console.log("Fetching folders from server...");
-        let a = await fetch("./songs/");
-        console.log("Server response status:", a.status);
+        console.log("Fetching folders from index.json...");
+        let response = await fetch("./songs/index.json");
+        console.log("Server response status:", response.status);
         
-        if (!a.ok) {
-            throw new Error(`HTTP error! status: ${a.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        let response = await a.text();
-        console.log("Server response:", response.substring(0, 200) + "...");
-
-        // Parse the HTML response to find folder links
-        let folders = [];
+        let data = await response.json();
+        console.log("Fetched data:", data);
         
-        // Use regex to find folder links in the HTML
-        const folderRegex = /href="([^"]*\/)"[^>]*>([^<]*)<\/a>/g;
-        let match;
-        
-        while ((match = folderRegex.exec(response)) !== null) {
-            const href = match[1];
-            const text = match[2].trim();
-            
-            console.log("Found link:", href, "Text:", text);
-            
-            // Check if this is a folder (ends with /) and is not the parent directory
-            if (href.endsWith("/") && 
-                !href.includes("..") && 
-                !href.startsWith("/") && 
-                text !== "Parent Directory") {
-                
-                // Extract folder name from href - clean up the path
-                let folderName = href.replace("/", "");
-                
-                // Remove any path prefixes like \songs\ or songs\
-                folderName = folderName.replace(/^[\\\/]?songs[\\\/]/, "");
-                folderName = folderName.replace(/^[\\\/]/, "");
-                
-                if (folderName && folderName !== "") {
-                    folders.push(folderName);
-                    console.log("Added folder:", folderName);
-                }
-            }
-        }
-        
+        // Extract folder names from the JSON structure
+        let folders = data.folders.map(folder => folder.name);
         console.log("Final folders list:", folders);
         return folders;
     } catch (error) {
@@ -325,20 +280,25 @@ async function getFolders() {
     }
 }
 
-// Get folder info from info.json
+// Get folder info from index.json
 async function getFolderInfo(folderName) {
     try {
-        // Encode the folder name for URL
-        const encodedFolderName = encodeURIComponent(folderName);
-        let response = await fetch(`./songs/${encodedFolderName}/info.json`);
+        let response = await fetch("./songs/index.json");
         if (response.ok) {
-            return await response.json();
+            let data = await response.json();
+            let folder = data.folders.find(f => f.name === folderName);
+            if (folder) {
+                return {
+                    title: folder.title,
+                    description: folder.description
+                };
+            }
         }
     } catch (error) {
-        console.log(`No info.json found for ${folderName}`);
+        console.log(`Error fetching folder info for ${folderName}:`, error);
     }
     
-    // Default info if no info.json exists
+    // Default info if no data found
     const displayName = folderName.split(' ').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
@@ -352,26 +312,16 @@ async function getFolderInfo(folderName) {
 // Get songs from specific folder
 async function getSongsFromFolder(folderName) {
     try {
-        // Encode the folder name for URL
-        const encodedFolderName = encodeURIComponent(folderName);
-        let a = await fetch(`./songs/${encodedFolderName}/`);
-        let response = await a.text();
-
-        let div = document.createElement("div");
-        div.innerHTML = response;
-        let as = div.getElementsByTagName("a");
-
-        let songs = [];
-        for (let index = 0; index < as.length; index++) {
-            const element = as[index];
-            if (element.href.endsWith(".mp3")) {
-                // Extract the song name from the URL
-                const songUrl = element.href;
-                const songName = songUrl.split('/').pop(); // Get the last part of the URL
-                songs.push(`${folderName}/${songName}`);
+        let response = await fetch("./songs/index.json");
+        if (response.ok) {
+            let data = await response.json();
+            let folder = data.folders.find(f => f.name === folderName);
+            if (folder) {
+                // Return songs with folder prefix for consistency
+                return folder.songs.map(song => `${folderName}/${song}`);
             }
         }
-        return songs;
+        return [];
     } catch (error) {
         console.error(`Error fetching songs from folder ${folderName}:`, error);
         return [];
@@ -380,48 +330,39 @@ async function getSongsFromFolder(folderName) {
 
 // Load songs from specific folder into playlist
 async function loadSongsFromFolder(folderName) {
-    let songs = [];
-    
-    if (isDemoMode) {
-        console.log(`Using demo songs for ${folderName}`);
-        songs = getDemoSongs(folderName);
-    } else {
-        try {
-            songs = await getSongsFromFolder(folderName);
-        } catch (error) {
-            console.log(`Using demo songs for ${folderName}`);
-            songs = getDemoSongs(folderName);
-        }
-    }
-    
-    allSongs = songs;
+    try {
+        let songs = await getSongsFromFolder(folderName);
+        allSongs = songs;
 
-    let songUL = document.querySelector(".songList ul");
-    songUL.innerHTML = ""; // Clear previous content
-    for (let i = 0; i < allSongs.length; i++) {
-        const song = allSongs[i];
-        // Remove folder prefix from display name
-        const displayName = song.replace(`${folderName}/`, "").replaceAll("%20", " ");
-        songUL.innerHTML += `
-            <li data-index="${i}">
-                <img src="image/music.svg" alt="">
-                <div class="info">
-                    <div>${displayName}</div>
-                    <div>${folderName}</div>
-                </div>
-                <div class="playnow">
-                    <span>Play Now</span>
-                    <img src="image/play.svg" alt="">
-                </div>
-            </li>`;
-    }
-    // Attach click events to all songs
-    Array.from(songUL.getElementsByTagName("li")).forEach((e) => {
-        e.addEventListener("click", () => {
-            const index = parseInt(e.getAttribute("data-index"));
-            playMusic(allSongs[index], index);
+        let songUL = document.querySelector(".songList ul");
+        songUL.innerHTML = ""; // Clear previous content
+        for (let i = 0; i < allSongs.length; i++) {
+            const song = allSongs[i];
+            // Remove folder prefix from display name
+            const displayName = song.replace(`${folderName}/`, "").replaceAll("%20", " ");
+            songUL.innerHTML += `
+                <li data-index="${i}">
+                    <img src="image/music.svg" alt="">
+                    <div class="info">
+                        <div>${displayName}</div>
+                        <div>${folderName}</div>
+                    </div>
+                    <div class="playnow">
+                        <span>Play Now</span>
+                        <img src="image/play.svg" alt="">
+                    </div>
+                </li>`;
+        }
+        // Attach click events to all songs
+        Array.from(songUL.getElementsByTagName("li")).forEach((e) => {
+            e.addEventListener("click", () => {
+                const index = parseInt(e.getAttribute("data-index"));
+                playMusic(allSongs[index], index);
+            });
         });
-    });
+    } catch (error) {
+        console.error(`Error loading songs from folder ${folderName}:`, error);
+    }
 }
 
 // Create cards for all folders
@@ -431,33 +372,16 @@ async function createFolderCards() {
         let folders = await getFolders();
         console.log("Found folders:", folders);
         
-        // Use demo data if server fetch fails
-        if (folders.length === 0) {
-            console.log("Server fetch failed, using demo data...");
-            isDemoMode = true; // Set demo mode flag
-            const demoFolders = getDemoFolders();
-            folders = demoFolders.map(folder => folder.name);
-            console.log("Using demo folders:", folders);
-        }
-        
         const cardsContainer = document.querySelector('.cardContainer');
         console.log("Cards container found:", cardsContainer);
         
-        if (cardsContainer) {
+        if (cardsContainer && folders.length > 0) {
             cardsContainer.innerHTML = ""; // Clear existing cards
             
             // Create cards for each folder with custom info
             for (const folder of folders) {
                 console.log("Processing folder:", folder);
-                let folderInfo;
-                
-                // Try to get folder info from server, fallback to demo data
-                try {
-                    folderInfo = await getFolderInfo(folder);
-                } catch (error) {
-                    console.log(`Using demo info for ${folder}`);
-                    folderInfo = getDemoFolderInfo(folder);
-                }
+                let folderInfo = await getFolderInfo(folder);
                 console.log("Folder info:", folderInfo);
                 
                 const card = document.createElement('div');
