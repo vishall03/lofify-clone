@@ -15,9 +15,10 @@ A modern, responsive Spotify clone built with HTML, CSS, and JavaScript. Feature
 
 ## 🚀 Live Demo
 
-[Add your live demo link here]
+https://lofify-ten.vercel.app/
 
 ## 🛠️ Technologies Used
+
 
 - **HTML5** - Structure and semantics
 - **CSS3** - Styling and responsive design
@@ -143,9 +144,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter) - email@example.com
+Your Name - Vishal Rathore - vishalrathore0992@gmail.com
 
-Project Link: [https://github.com/yourusername/spotify-clone](https://github.com/yourusername/spotify-clone)
+Project Link: https://github.com/vishall03/spotify-clone)
 
 ---
 
